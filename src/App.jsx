@@ -192,7 +192,6 @@ const MainApp = ({ user, onLogout }) => {
   // Синхронизация с Supabase
   const syncToSupabase = async (userId, data) => {
     try {
-      log('syncToSupabase: начало');
       // Сферы
       if (data.spheres?.length) {
         for (const item of data.spheres) {
@@ -204,13 +203,12 @@ const MainApp = ({ user, onLogout }) => {
             is_default: item.isDefault || false,
             sort_order: item.sortOrder || 0
           });
-          if (error) log('Sphere error: ' + error.message);
+          if (error) console.error('Sphere error:', error);
         }
       }
 
       // Мечты
       if (data.dreams?.length) {
-        log('Сохраняю ' + data.dreams.length + ' мечт...');
         for (const item of data.dreams) {
           const { error } = await supabase.from('dreams').upsert({
             id: item.id,
@@ -229,7 +227,7 @@ const MainApp = ({ user, onLogout }) => {
             status: item.status || 'active',
             sort_order: item.sortOrder || 0
           });
-          if (error) log('Dream error: ' + error.message);
+          if (error) console.error('Dream error:', error);
         }
       }
 
@@ -247,7 +245,7 @@ const MainApp = ({ user, onLogout }) => {
             deadline: item.deadline || null,
             sort_order: item.sortOrder || 0
           });
-          if (error) log('Goal error: ' + error.message);
+          if (error) console.error('Goal:', error);
         }
       }
 
@@ -263,7 +261,7 @@ const MainApp = ({ user, onLogout }) => {
             deadline: item.deadline || null,
             sort_order: item.sortOrder || 0
           });
-          if (error) log('Step error: ' + error.message);
+          if (error) console.error('Step:', error);
         }
       }
 
@@ -285,7 +283,7 @@ const MainApp = ({ user, onLogout }) => {
             recurrence_rule: item.recurrenceRule || null,
             sort_order: item.sortOrder || 0
           });
-          if (error) log('Action error: ' + error.message);
+          if (error) console.error('Action:', error);
         }
       }
 
@@ -301,7 +299,7 @@ const MainApp = ({ user, onLogout }) => {
             is_archived: item.isArchived || false,
             sort_order: item.sortOrder || 0
           });
-          if (error) log('Activity error: ' + error.message);
+          if (error) console.error('Activity:', error);
         }
       }
 
@@ -316,7 +314,7 @@ const MainApp = ({ user, onLogout }) => {
             end_at: item.endAt || null,
             duration: item.duration || null
           });
-          if (error) log('Session error: ' + error.message);
+          if (error) console.error('Session:', error);
         }
       }
 
@@ -333,7 +331,7 @@ const MainApp = ({ user, onLogout }) => {
             is_archived: item.isArchived || false,
             sort_order: item.sortOrder || 0
           });
-          if (error) log('Category error: ' + error.message);
+          if (error) console.error('Category:', error);
         }
       }
 
@@ -350,7 +348,7 @@ const MainApp = ({ user, onLogout }) => {
             rule_value: item.ruleValue || null,
             sort_order: item.sortOrder || 0
           });
-          if (error) log('Fund error: ' + error.message);
+          if (error) console.error('Fund:', error);
         }
       }
 
@@ -368,14 +366,13 @@ const MainApp = ({ user, onLogout }) => {
             comment: item.comment || null,
             is_recurring: item.isRecurring || false
           });
-          if (error) log('Transaction error: ' + error.message);
+          if (error) console.error('Trans:', error);
         }
       }
 
     } catch (err) {
-      log('Sync error: ' + err.message);
+      console.error('Sync error:', err);
     }
-    log('syncToSupabase: завершено');
   };
 
   // Принудительная синхронизация
