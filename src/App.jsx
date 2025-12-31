@@ -124,54 +124,75 @@ const MainApp = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState(false);
+  const [debugLogs, setDebugLogs] = useState([]);
+  const [showDebug, setShowDebug] = useState(false);
+
+  // Функция логирования
+  const log = (msg) => {
+    console.log(msg);
+    setDebugLogs(prev => [...prev.slice(-20), `${new Date().toLocaleTimeString()}: ${msg}`]);
+  };
 
   // Загрузка данных при старте
   useEffect(() => {
     const loadData = async () => {
+      log('Начинаю загрузку...');
+      
       // Сначала загружаем из localStorage (мгновенно)
       const cached = localStorage.getItem(`planner_data_${user.id}`);
       if (cached) {
         try {
           setData(JSON.parse(cached));
+          log('Загружено из кэша');
         } catch (e) {
-          console.error('Cache parse error:', e);
+          log('Ошибка кэша: ' + e.message);
         }
       }
       
-      // Затем обновляем из Supabase (теперь не падает - safeGet внутри)
+      // Затем обновляем из Supabase
+      log('Загружаю из Supabase...');
       const cloudData = await loadAllData(user.id);
       if (cloudData) {
         setData(cloudData);
         localStorage.setItem(`planner_data_${user.id}`, JSON.stringify(cloudData));
+        log('Загружено из облака: ' + (cloudData.dreams?.length || 0) + ' мечт');
+      } else {
+        log('Облако вернуло пустые данные');
       }
       
       // Если нет ни кэша ни данных - пустые данные
       if (!cached && !cloudData) {
         setData({ spheres: [], dreams: [], goals: [], steps: [], actions: [], activities: [], sessions: [], financeCategories: [], funds: [], transactions: [], budgets: {} });
+        log('Инициализированы пустые данные');
       }
       
       setSyncError(false);
       setLoading(false);
+      log('Загрузка завершена');
     };
     loadData();
   }, [user.id]);
 
   // Функция сохранения данных
   const saveData = async (newData) => {
+    log('Сохраняю данные...');
     setData(newData);
     // Сохраняем в localStorage сразу
     localStorage.setItem(`planner_data_${user.id}`, JSON.stringify(newData));
+    log('Сохранено в кэш');
     
     // Синхронизируем с Supabase в фоне
     setSyncing(true);
+    log('Синхронизирую с облаком...');
     await syncToSupabase(user.id, newData);
     setSyncing(false);
-    // Не ставим syncError - данные сохранены локально, синхронизация в фоне
+    log('Синхронизация завершена');
   };
 
   // Синхронизация с Supabase
   const syncToSupabase = async (userId, data) => {
     try {
+      log('syncToSupabase: начало');
       // Сферы
       if (data.spheres?.length) {
         for (const item of data.spheres) {
@@ -183,12 +204,13 @@ const MainApp = ({ user, onLogout }) => {
             is_default: item.isDefault || false,
             sort_order: item.sortOrder || 0
           });
-          if (error) console.error('Sphere sync error:', error);
+          if (error) log('Sphere error: ' + error.message);
         }
       }
 
       // Мечты
       if (data.dreams?.length) {
+        log('Сохраняю ' + data.dreams.length + ' мечт...');
         for (const item of data.dreams) {
           const { error } = await supabase.from('dreams').upsert({
             id: item.id,
@@ -207,7 +229,7 @@ const MainApp = ({ user, onLogout }) => {
             status: item.status || 'active',
             sort_order: item.sortOrder || 0
           });
-          if (error) console.error('Dream sync error:', error);
+          if (error) log('Dream error: ' + error.message);
         }
       }
 
@@ -225,7 +247,7 @@ const MainApp = ({ user, onLogout }) => {
             deadline: item.deadline || null,
             sort_order: item.sortOrder || 0
           });
-          if (error) console.error('Goal sync error:', error);
+          if (error) log('Goal error: ' + error.message);
         }
       }
 
@@ -241,7 +263,7 @@ const MainApp = ({ user, onLogout }) => {
             deadline: item.deadline || null,
             sort_order: item.sortOrder || 0
           });
-          if (error) console.error('Step sync error:', error);
+          if (error) log('Step error: ' + error.message);
         }
       }
 
@@ -263,7 +285,7 @@ const MainApp = ({ user, onLogout }) => {
             recurrence_rule: item.recurrenceRule || null,
             sort_order: item.sortOrder || 0
           });
-          if (error) console.error('Action sync error:', error);
+          if (error) log('Action error: ' + error.message);
         }
       }
 
@@ -279,7 +301,7 @@ const MainApp = ({ user, onLogout }) => {
             is_archived: item.isArchived || false,
             sort_order: item.sortOrder || 0
           });
-          if (error) console.error('Activity sync error:', error);
+          if (error) log('Activity error: ' + error.message);
         }
       }
 
@@ -294,7 +316,7 @@ const MainApp = ({ user, onLogout }) => {
             end_at: item.endAt || null,
             duration: item.duration || null
           });
-          if (error) console.error('Session sync error:', error);
+          if (error) log('Session error: ' + error.message);
         }
       }
 
@@ -311,7 +333,7 @@ const MainApp = ({ user, onLogout }) => {
             is_archived: item.isArchived || false,
             sort_order: item.sortOrder || 0
           });
-          if (error) console.error('Finance category sync error:', error);
+          if (error) log('Category error: ' + error.message);
         }
       }
 
@@ -328,7 +350,7 @@ const MainApp = ({ user, onLogout }) => {
             rule_value: item.ruleValue || null,
             sort_order: item.sortOrder || 0
           });
-          if (error) console.error('Fund sync error:', error);
+          if (error) log('Fund error: ' + error.message);
         }
       }
 
@@ -346,26 +368,31 @@ const MainApp = ({ user, onLogout }) => {
             comment: item.comment || null,
             is_recurring: item.isRecurring || false
           });
-          if (error) console.error('Transaction sync error:', error);
+          if (error) log('Transaction error: ' + error.message);
         }
       }
 
     } catch (err) {
-      console.error('Sync error:', err);
-      // Не бросаем ошибку - продолжаем работу
+      log('Sync error: ' + err.message);
     }
+    log('syncToSupabase: завершено');
   };
 
   // Принудительная синхронизация
   const forceSync = async () => {
+    log('Принудительная синхронизация...');
     setSyncing(true);
     const cloudData = await loadAllData(user.id);
     if (cloudData) {
       setData(cloudData);
       localStorage.setItem(`planner_data_${user.id}`, JSON.stringify(cloudData));
+      log('Получено из облака: ' + (cloudData.dreams?.length || 0) + ' мечт');
+    } else {
+      log('Облако вернуло null');
     }
     setSyncError(false);
     setSyncing(false);
+    log('Синхронизация завершена');
   };
 
   if (loading) return <LoadingScreen message="Загрузка данных..." />;
@@ -408,6 +435,22 @@ const MainApp = ({ user, onLogout }) => {
       </div>
 
       {renderScreen()}
+      
+      {/* Debug кнопка */}
+      <button onClick={() => setShowDebug(!showDebug)} style={{ position: 'fixed', bottom: '100px', left: '10px', padding: '6px 10px', background: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: '8px', fontSize: '10px', color: COLORS.textMuted, cursor: 'pointer', zIndex: 1000 }}>
+        DEBUG
+      </button>
+      
+      {/* Debug панель */}
+      {showDebug && (
+        <div style={{ position: 'fixed', bottom: '140px', left: '10px', right: '10px', maxHeight: '200px', background: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: '12px', padding: '10px', overflowY: 'auto', zIndex: 1000 }}>
+          <div style={{ fontSize: '10px', color: COLORS.textMuted, fontFamily: 'monospace' }}>
+            {debugLogs.length === 0 ? 'Нет логов' : debugLogs.map((log, i) => (
+              <div key={i} style={{ marginBottom: '4px', wordBreak: 'break-all' }}>{log}</div>
+            ))}
+          </div>
+        </div>
+      )}
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
