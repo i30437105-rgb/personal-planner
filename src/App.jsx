@@ -138,23 +138,20 @@ const MainApp = ({ user, onLogout }) => {
         }
       }
       
-      // Затем пробуем обновить из Supabase
-      try {
-        const cloudData = await loadAllData(user.id);
+      // Затем обновляем из Supabase (теперь не падает - safeGet внутри)
+      const cloudData = await loadAllData(user.id);
+      if (cloudData) {
         setData(cloudData);
-        // Кэшируем в localStorage
         localStorage.setItem(`planner_data_${user.id}`, JSON.stringify(cloudData));
-        setSyncError(false);
-      } catch (err) {
-        console.error('Error loading from Supabase:', err);
-        // Если ошибка и нет кэша - инициализируем пустые данные
-        if (!cached) {
-          setData({ spheres: [], dreams: [], goals: [], steps: [], actions: [], activities: [], sessions: [], financeCategories: [], funds: [], transactions: [], budgets: {} });
-        }
-        setSyncError(true);
-      } finally {
-        setLoading(false);
       }
+      
+      // Если нет ни кэша ни данных - пустые данные
+      if (!cached && !cloudData) {
+        setData({ spheres: [], dreams: [], goals: [], steps: [], actions: [], activities: [], sessions: [], financeCategories: [], funds: [], transactions: [], budgets: {} });
+      }
+      
+      setSyncError(false);
+      setLoading(false);
     };
     loadData();
   }, [user.id]);
@@ -368,17 +365,13 @@ const MainApp = ({ user, onLogout }) => {
   // Принудительная синхронизация
   const forceSync = async () => {
     setSyncing(true);
-    try {
-      const cloudData = await loadAllData(user.id);
+    const cloudData = await loadAllData(user.id);
+    if (cloudData) {
       setData(cloudData);
       localStorage.setItem(`planner_data_${user.id}`, JSON.stringify(cloudData));
-      setSyncError(false);
-    } catch (err) {
-      console.error('Force sync error:', err);
-      setSyncError(true);
-    } finally {
-      setSyncing(false);
     }
+    setSyncError(false);
+    setSyncing(false);
   };
 
   if (loading) return <LoadingScreen message="Загрузка данных..." />;

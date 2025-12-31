@@ -234,73 +234,61 @@ export const saveUserSettings = async (settings) => {
 // ЗАГРУЗИТЬ ВСЕ ДАННЫЕ
 // ============================================
 export const loadAllData = async (userId) => {
-  try {
-    const [
-      spheresRes,
-      dreamsRes,
-      goalsRes,
-      stepsRes,
-      actionsRes,
-      activitiesRes,
-      sessionsRes,
-      categoriesRes,
-      fundsRes,
-      transactionsRes,
-      budgetsRes
-    ] = await Promise.all([
-      getSpheres(userId),
-      getDreams(userId),
-      getGoals(userId),
-      getSteps(userId),
-      getActions(userId),
-      getActivities(userId),
-      getSessions(userId),
-      getFinanceCategories(userId),
-      getFunds(userId),
-      getTransactions(userId),
-      getBudgets(userId)
-    ]);
+  // Функция безопасного запроса
+  const safeGet = async (fn) => {
+    try {
+      const result = await fn(userId);
+      return result.data || [];
+    } catch (err) {
+      console.warn('Load error:', err);
+      return [];
+    }
+  };
 
-    // Логируем ошибки если есть
-    if (spheresRes.error) console.warn('Spheres load error:', spheresRes.error);
-    if (dreamsRes.error) console.warn('Dreams load error:', dreamsRes.error);
-    if (goalsRes.error) console.warn('Goals load error:', goalsRes.error);
+  // Загружаем данные последовательно для стабильности на iOS
+  const spheres = await safeGet(getSpheres);
+  const dreams = await safeGet(getDreams);
+  const goals = await safeGet(getGoals);
+  const steps = await safeGet(getSteps);
+  const actions = await safeGet(getActions);
+  const activities = await safeGet(getActivities);
+  const sessions = await safeGet(getSessions);
+  const categories = await safeGet(getFinanceCategories);
+  const fundsData = await safeGet(getFunds);
+  const transactions = await safeGet(getTransactions);
+  const budgetsData = await safeGet(getBudgets);
 
-    // Конвертируем snake_case в camelCase для совместимости с текущим кодом
-    const convertKeys = (obj) => {
-      if (!obj) return obj;
-      const newObj = {};
-      for (const key in obj) {
-        const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-        newObj[camelKey] = obj[key];
-      }
-      return newObj;
-    };
+  // Конвертируем snake_case в camelCase
+  const convertKeys = (obj) => {
+    if (!obj) return obj;
+    const newObj = {};
+    for (const key in obj) {
+      const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+      newObj[camelKey] = obj[key];
+    }
+    return newObj;
+  };
 
-    const convertArray = (arr) => arr?.map(convertKeys) || [];
+  const convertArray = (arr) => arr?.map(convertKeys) || [];
 
-    // Преобразуем бюджеты в объект
-    const budgetsObj = {};
-    budgetsRes.data?.forEach(b => {
-      const key = `${b.category_id}_${b.year}_${b.month}`;
-      budgetsObj[key] = b.limit_amount;
-    });
+  // Преобразуем бюджеты в объект
+  const budgetsObj = {};
+  budgetsData?.forEach(b => {
+    const key = `${b.category_id}_${b.year}_${b.month}`;
+    budgetsObj[key] = b.limit_amount;
+  });
 
-    return {
-      spheres: convertArray(spheresRes.data),
-      dreams: convertArray(dreamsRes.data),
-      goals: convertArray(goalsRes.data),
-      steps: convertArray(stepsRes.data),
-      actions: convertArray(actionsRes.data),
-      activities: convertArray(activitiesRes.data),
-      sessions: convertArray(sessionsRes.data),
-      financeCategories: convertArray(categoriesRes.data),
-      funds: convertArray(fundsRes.data),
-      transactions: convertArray(transactionsRes.data),
-      budgets: budgetsObj
-    };
-  } catch (err) {
-    console.error('LoadAllData error:', err);
-    throw err;
-  }
+  return {
+    spheres: convertArray(spheres),
+    dreams: convertArray(dreams),
+    goals: convertArray(goals),
+    steps: convertArray(steps),
+    actions: convertArray(actions),
+    activities: convertArray(activities),
+    sessions: convertArray(sessions),
+    financeCategories: convertArray(categories),
+    funds: convertArray(fundsData),
+    transactions: convertArray(transactions),
+    budgets: budgetsObj
+  };
 };
