@@ -414,7 +414,7 @@ const MainApp = ({ user, onLogout }) => {
             <Cloud style={{ width: '14px', height: '14px', color: COLORS.success }} />
             <span style={{ fontSize: '11px', color: COLORS.success }}>Синхронизировано</span>
           </div>
-        )}}
+        )}
         <button onClick={onLogout} style={{ padding: '6px', background: COLORS.bgCard, border: `1px solid ${COLORS.border}`, borderRadius: '8px', cursor: 'pointer' }}>
           <LogOut style={{ width: '16px', height: '16px', color: COLORS.textMuted }} />
         </button>
