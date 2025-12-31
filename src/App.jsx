@@ -164,15 +164,9 @@ const MainApp = ({ user, onLogout }) => {
     
     // Синхронизируем с Supabase в фоне
     setSyncing(true);
-    try {
-      await syncToSupabase(user.id, newData);
-      setSyncError(false);
-    } catch (err) {
-      console.error('Sync error:', err);
-      setSyncError(true);
-    } finally {
-      setSyncing(false);
-    }
+    await syncToSupabase(user.id, newData);
+    setSyncing(false);
+    // Не ставим syncError - данные сохранены локально, синхронизация в фоне
   };
 
   // Синхронизация с Supabase
@@ -358,7 +352,7 @@ const MainApp = ({ user, onLogout }) => {
 
     } catch (err) {
       console.error('Sync error:', err);
-      throw err;
+      // Не бросаем ошибку - продолжаем работу
     }
   };
 
