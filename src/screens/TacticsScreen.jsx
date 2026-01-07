@@ -305,36 +305,40 @@ export const TacticsScreen = ({ data, saveData }) => {
   const [currentMilestoneId, setCurrentMilestoneId] = useState(null);
   const [showGoalDropdown, setShowGoalDropdown] = useState(false);
 
+  // Защита от отсутствующих полей
+  const goals = data.goals || [];
+  const milestones = data.milestones || [];
+  const steps = data.steps || [];
+
   const currentYear = new Date().getFullYear();
-  const activeGoals = data.goals.filter(g => g.status === 'active' && g.year === currentYear);
+  const activeGoals = goals.filter(g => g.status === 'active');
   const selectedGoal = activeGoals.find(g => g.id === selectedGoalId);
   
   useEffect(() => {
     if (!selectedGoalId && activeGoals.length > 0) setSelectedGoalId(activeGoals[0].id);
   }, [activeGoals, selectedGoalId]);
 
-  const milestone = data.milestones.find(m => m.goalId === selectedGoalId && m.quarter === selectedQuarter && m.year === currentYear);
-  const steps = milestone ? data.steps.filter(s => s.milestoneId === milestone.id) : [];
+  const milestone = milestones.find(m => m.goalId === selectedGoalId && m.quarter === selectedQuarter && m.year === currentYear);
+  const currentSteps = milestone ? steps.filter(s => s.milestoneId === milestone.id) : [];
 
   const handleSaveMilestone = (milestoneData) => {
-    const existingIndex = data.milestones.findIndex(m => m.id === milestoneData.id);
-    let newMilestones = existingIndex >= 0 ? [...data.milestones] : [...data.milestones, milestoneData];
+    const existingIndex = milestones.findIndex(m => m.id === milestoneData.id);
+    let newMilestones = existingIndex >= 0 ? [...milestones] : [...milestones, milestoneData];
     if (existingIndex >= 0) newMilestones[existingIndex] = milestoneData;
     saveData({ ...data, milestones: newMilestones });
     setShowMilestoneForm(false); setEditingMilestone(null);
-    // Если цель изменилась, обновляем выбранную цель
     if (milestoneData.goalId !== selectedGoalId) {
       setSelectedGoalId(milestoneData.goalId);
     }
   };
 
   const handleUpdateMilestoneStatus = (milestoneId, status) => {
-    saveData({ ...data, milestones: data.milestones.map(m => m.id === milestoneId ? { ...m, status } : m) });
+    saveData({ ...data, milestones: milestones.map(m => m.id === milestoneId ? { ...m, status } : m) });
   };
 
   const handleSaveStep = (stepData) => {
-    const existingIndex = data.steps.findIndex(s => s.id === stepData.id);
-    let newSteps = existingIndex >= 0 ? [...data.steps] : [...data.steps, stepData];
+    const existingIndex = steps.findIndex(s => s.id === stepData.id);
+    let newSteps = existingIndex >= 0 ? [...steps] : [...steps, stepData];
     if (existingIndex >= 0) newSteps[existingIndex] = stepData;
     saveData({ ...data, steps: newSteps });
     setShowStepForm(false); setEditingStep(null); setCurrentMilestoneId(null);
@@ -342,7 +346,7 @@ export const TacticsScreen = ({ data, saveData }) => {
 
   const handleToggleStep = (step) => {
     const newStatus = step.status === 'completed' ? 'pending' : 'completed';
-    saveData({ ...data, steps: data.steps.map(s => s.id === step.id ? { ...s, status: newStatus } : s) });
+    saveData({ ...data, steps: steps.map(s => s.id === step.id ? { ...s, status: newStatus } : s) });
   };
 
   return (
@@ -383,7 +387,7 @@ export const TacticsScreen = ({ data, saveData }) => {
         {selectedGoalId && (
           <div style={{ display: 'flex', gap: '4px', background: COLORS.bg, padding: '4px', borderRadius: '12px', border: `1px solid ${COLORS.border}` }}>
             {QUARTERS.map((q) => {
-              const hasMilestone = data.milestones.some(m => m.goalId === selectedGoalId && m.quarter === q.id && m.year === currentYear);
+              const hasMilestone = milestones.some(m => m.goalId === selectedGoalId && m.quarter === q.id && m.year === currentYear);
               return (
                 <button key={q.id} onClick={() => setSelectedQuarter(q.id)} style={{ flex: 1, padding: '12px', background: selectedQuarter === q.id ? COLORS.gold : 'transparent', border: 'none', borderRadius: '8px', color: selectedQuarter === q.id ? COLORS.bg : COLORS.textMuted, fontSize: '14px', fontWeight: selectedQuarter === q.id ? '600' : '400', cursor: 'pointer', position: 'relative' }}>
                   {q.label}

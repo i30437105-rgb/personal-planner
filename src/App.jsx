@@ -149,7 +149,7 @@ const MainApp = ({ user, onLogout }) => {
       } catch (err) {
         console.error('Load error:', err);
         if (!cached) {
-          setData({ spheres: [], dreams: [], goals: [], steps: [], actions: [], activities: [], sessions: [], financeCategories: [], funds: [], transactions: [], budgets: {} });
+          setData({ spheres: [], dreams: [], goals: [], steps: [], actions: [], activities: [], sessions: [], financeCategories: [], funds: [], transactions: [], budgets: {}, milestones: [], goalCriteria: [] });
         }
         setSyncError(true);
       }

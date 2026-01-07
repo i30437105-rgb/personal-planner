@@ -289,6 +289,8 @@ export const loadAllData = async (userId) => {
     financeCategories: convertArray(categories),
     funds: convertArray(fundsData),
     transactions: convertArray(transactions),
-    budgets: budgetsObj
+    budgets: budgetsObj,
+    milestones: [],
+    goalCriteria: []
   };
 };

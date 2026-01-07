@@ -439,29 +439,34 @@ export const StrategyScreen = ({ data, saveData }) => {
   const [sortBy, setSortBy] = useState('deadline');
   const [expandedGoalId, setExpandedGoalId] = useState(null);
 
-  const currentYear = new Date().getFullYear();
-  const activeGoals = data.goals.filter(g => g.status === 'active' && g.year === currentYear);
-  const filteredGoals = filterDreamId === 'all' ? activeGoals : activeGoals.filter(g => g.dreamId === filterDreamId);
-  const sortedGoals = sortGoals(filteredGoals, sortBy, data.dreams);
-  const activeDreams = data.dreams.filter(d => d.status === 'active' && d.type === 'dream');
+  // Защита от отсутствующих полей
+  const goals = data.goals || [];
+  const dreams = data.dreams || [];
+  const goalCriteria = data.goalCriteria || [];
 
-  const handleSaveGoal = (goal, goalCriteria) => {
-    const existingIndex = data.goals.findIndex(g => g.id === goal.id);
+  const currentYear = new Date().getFullYear();
+  const activeGoals = goals.filter(g => g.status === 'active');
+  const filteredGoals = filterDreamId === 'all' ? activeGoals : activeGoals.filter(g => g.dreamId === filterDreamId);
+  const sortedGoals = sortGoals(filteredGoals, sortBy, dreams);
+  const activeDreams = dreams.filter(d => d.status === 'active' && d.type === 'dream');
+
+  const handleSaveGoal = (goal, newGoalCriteria) => {
+    const existingIndex = goals.findIndex(g => g.id === goal.id);
     let newGoals;
-    if (existingIndex >= 0) { newGoals = [...data.goals]; newGoals[existingIndex] = goal; }
-    else newGoals = [...data.goals, goal];
-    const otherCriteria = data.goalCriteria.filter(c => c.goalId !== goal.id);
-    saveData({ ...data, goals: newGoals, goalCriteria: [...otherCriteria, ...goalCriteria] });
+    if (existingIndex >= 0) { newGoals = [...goals]; newGoals[existingIndex] = goal; }
+    else newGoals = [...goals, goal];
+    const otherCriteria = goalCriteria.filter(c => c.goalId !== goal.id);
+    saveData({ ...data, goals: newGoals, goalCriteria: [...otherCriteria, ...newGoalCriteria] });
     setShowForm(false); setEditingGoal(null);
   };
 
   const handleUpdateCriteria = (updatedCriteria) => {
-    const newCriteria = data.goalCriteria.map(c => c.id === updatedCriteria.id ? updatedCriteria : c);
+    const newCriteria = goalCriteria.map(c => c.id === updatedCriteria.id ? updatedCriteria : c);
     saveData({ ...data, goalCriteria: newCriteria });
   };
 
-  const handleArchive = (goal) => saveData({ ...data, goals: data.goals.map(g => g.id === goal.id ? { ...g, status: 'archived' } : g) });
-  const handleAchieve = (goal) => saveData({ ...data, goals: data.goals.map(g => g.id === goal.id ? { ...g, status: 'achieved', achievedAt: new Date().toISOString() } : g) });
+  const handleArchive = (goal) => saveData({ ...data, goals: goals.map(g => g.id === goal.id ? { ...g, status: 'archived' } : g) });
+  const handleAchieve = (goal) => saveData({ ...data, goals: goals.map(g => g.id === goal.id ? { ...g, status: 'achieved', achievedAt: new Date().toISOString() } : g) });
 
   const handleEditGoal = (goal) => {
     setEditingGoal(goal);
@@ -507,8 +512,8 @@ export const StrategyScreen = ({ data, saveData }) => {
               <GoalCard 
                 key={goal.id} 
                 goal={goal} 
-                dream={data.dreams.find(d => d.id === goal.dreamId)} 
-                criteria={data.goalCriteria} 
+                dream={dreams.find(d => d.id === goal.dreamId)} 
+                criteria={goalCriteria} 
                 onUpdateCriteria={handleUpdateCriteria} 
                 onEdit={() => handleEditGoal(goal)}
                 onArchive={() => handleArchive(goal)}
@@ -528,10 +533,10 @@ export const StrategyScreen = ({ data, saveData }) => {
       )}
 
       <Modal isOpen={showForm} onClose={() => { setShowForm(false); setEditingGoal(null); }} title={editingGoal ? 'Редактировать цель' : 'Новая цель'}>
-        <GoalForm dreams={data.dreams} criteria={data.goalCriteria} existingGoal={editingGoal} onSave={handleSaveGoal} onClose={() => { setShowForm(false); setEditingGoal(null); }} />
+        <GoalForm dreams={dreams} criteria={goalCriteria} existingGoal={editingGoal} onSave={handleSaveGoal} onClose={() => { setShowForm(false); setEditingGoal(null); }} />
       </Modal>
 
-      {showHallOfFame && <GoalHallOfFame goals={data.goals} dreams={data.dreams} onClose={() => setShowHallOfFame(false)} />}
+      {showHallOfFame && <GoalHallOfFame goals={goals} dreams={dreams} onClose={() => setShowHallOfFame(false)} />}
     </div>
   );
 };

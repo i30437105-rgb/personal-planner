@@ -340,37 +340,41 @@ export const DreamScreen = ({ data, saveData }) => {
   const [pendingFocusDream, setPendingFocusDream] = useState(null);
   const [showSphereManager, setShowSphereManager] = useState(false);
 
-  const activeDreams = data.dreams.filter(d => d.status === 'active');
+  // Защита от отсутствующих полей
+  const dreams = data.dreams || [];
+  const spheres = data.spheres || [];
+
+  const activeDreams = dreams.filter(d => d.status === 'active');
   const sortedDreams = sortDreams(activeDreams);
   const focusedDreams = activeDreams.filter(d => d.isFocused);
 
   const handleFlip = (dreamId) => setFlippedCards(prev => ({ ...prev, [dreamId]: !prev[dreamId] }));
 
   const handleSaveDream = (dream) => {
-    const existingIndex = data.dreams.findIndex(d => d.id === dream.id);
+    const existingIndex = dreams.findIndex(d => d.id === dream.id);
     let newDreams;
-    if (existingIndex >= 0) { newDreams = [...data.dreams]; newDreams[existingIndex] = dream; }
-    else { dream.sortOrder = Math.max(0, ...data.dreams.map(d => d.sortOrder || 0)) + 1; newDreams = [...data.dreams, dream]; }
+    if (existingIndex >= 0) { newDreams = [...dreams]; newDreams[existingIndex] = dream; }
+    else { dream.sortOrder = Math.max(0, ...dreams.map(d => d.sortOrder || 0)) + 1; newDreams = [...dreams, dream]; }
     saveData({ ...data, dreams: newDreams });
     setShowForm(false); setEditingDream(null);
   };
 
-  const handleSaveSpheres = (spheres) => saveData({ ...data, spheres });
+  const handleSaveSpheres = (newSpheres) => saveData({ ...data, spheres: newSpheres });
 
   const handleToggleFocus = (dream) => {
     if (dream.isFocused) {
-      saveData({ ...data, dreams: data.dreams.map(d => d.id === dream.id ? { ...d, isFocused: false, isLeading: false } : d) });
+      saveData({ ...data, dreams: dreams.map(d => d.id === dream.id ? { ...d, isFocused: false, isLeading: false } : d) });
     } else {
       if (focusedDreams.length >= 3) { setPendingFocusDream(dream); setShowFocusSelect(true); }
-      else saveData({ ...data, dreams: data.dreams.map(d => d.id === dream.id ? { ...d, isFocused: true, isLeading: focusedDreams.length === 0 } : d) });
+      else saveData({ ...data, dreams: dreams.map(d => d.id === dream.id ? { ...d, isFocused: true, isLeading: focusedDreams.length === 0 } : d) });
     }
     setSelectedDream(null);
   };
 
-  const handleSetLeading = (dream) => { saveData({ ...data, dreams: data.dreams.map(d => ({ ...d, isLeading: d.id === dream.id })) }); setSelectedDream(null); };
-  const handleReplaceFocus = (oldDream) => { saveData({ ...data, dreams: data.dreams.map(d => { if (d.id === oldDream.id) return { ...d, isFocused: false, isLeading: false }; if (d.id === pendingFocusDream.id) return { ...d, isFocused: true, isLeading: oldDream.isLeading }; return d; })}); setShowFocusSelect(false); setPendingFocusDream(null); };
-  const handleArchive = (dream) => { saveData({ ...data, dreams: data.dreams.map(d => d.id === dream.id ? { ...d, status: 'archived', isFocused: false, isLeading: false } : d) }); setSelectedDream(null); };
-  const handleAchieve = (dream) => { saveData({ ...data, dreams: data.dreams.map(d => d.id === dream.id ? { ...d, status: 'achieved', achievedAt: new Date().toISOString(), isFocused: false, isLeading: false } : d) }); setSelectedDream(null); };
+  const handleSetLeading = (dream) => { saveData({ ...data, dreams: dreams.map(d => ({ ...d, isLeading: d.id === dream.id })) }); setSelectedDream(null); };
+  const handleReplaceFocus = (oldDream) => { saveData({ ...data, dreams: dreams.map(d => { if (d.id === oldDream.id) return { ...d, isFocused: false, isLeading: false }; if (d.id === pendingFocusDream.id) return { ...d, isFocused: true, isLeading: oldDream.isLeading }; return d; })}); setShowFocusSelect(false); setPendingFocusDream(null); };
+  const handleArchive = (dream) => { saveData({ ...data, dreams: dreams.map(d => d.id === dream.id ? { ...d, status: 'archived', isFocused: false, isLeading: false } : d) }); setSelectedDream(null); };
+  const handleAchieve = (dream) => { saveData({ ...data, dreams: dreams.map(d => d.id === dream.id ? { ...d, status: 'achieved', achievedAt: new Date().toISOString(), isFocused: false, isLeading: false } : d) }); setSelectedDream(null); };
 
   return (
     <div style={{ minHeight: '100vh', background: COLORS.bg, paddingBottom: '100px' }}>
@@ -413,7 +417,7 @@ export const DreamScreen = ({ data, saveData }) => {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px', maxWidth: '1200px', margin: '0 auto' }}>
             {sortedDreams.map((dream) => (
-              <DreamCard key={dream.id} dream={dream} sphere={data.spheres.find(s => s.id === dream.sphereId)} isFocused={dream.isFocused} isLeading={dream.isLeading} isFlipped={flippedCards[dream.id] || false} onFlip={handleFlip} onClick={(d) => setSelectedDream(d)} />
+              <DreamCard key={dream.id} dream={dream} sphere={spheres.find(s => s.id === dream.sphereId)} isFocused={dream.isFocused} isLeading={dream.isLeading} isFlipped={flippedCards[dream.id] || false} onFlip={handleFlip} onClick={(d) => setSelectedDream(d)} />
             ))}
           </div>
         )}
@@ -424,15 +428,15 @@ export const DreamScreen = ({ data, saveData }) => {
       </button>
 
       <Modal isOpen={showForm} onClose={() => { setShowForm(false); setEditingDream(null); }} title={editingDream ? 'Редактировать' : 'Новая мечта'}>
-        <DreamForm spheres={data.spheres} existingDream={editingDream} onSave={handleSaveDream} onClose={() => { setShowForm(false); setEditingDream(null); }} />
+        <DreamForm spheres={spheres} existingDream={editingDream} onSave={handleSaveDream} onClose={() => { setShowForm(false); setEditingDream(null); }} />
       </Modal>
 
       <Modal isOpen={showSphereManager} onClose={() => setShowSphereManager(false)} title="Сферы жизни">
-        <SphereManager spheres={data.spheres} dreams={data.dreams} onSave={handleSaveSpheres} onClose={() => setShowSphereManager(false)} />
+        <SphereManager spheres={spheres} dreams={dreams} onSave={handleSaveSpheres} onClose={() => setShowSphereManager(false)} />
       </Modal>
 
       {selectedDream && (
-        <DreamDetail dream={selectedDream} sphere={data.spheres.find(s => s.id === selectedDream.sphereId)} isFocused={selectedDream.isFocused} isLeading={selectedDream.isLeading} onClose={() => setSelectedDream(null)} onEdit={() => { setEditingDream(selectedDream); setSelectedDream(null); setShowForm(true); }} onToggleFocus={() => handleToggleFocus(selectedDream)} onSetLeading={() => handleSetLeading(selectedDream)} onArchive={() => handleArchive(selectedDream)} onAchieve={() => handleAchieve(selectedDream)} />
+        <DreamDetail dream={selectedDream} sphere={spheres.find(s => s.id === selectedDream.sphereId)} isFocused={selectedDream.isFocused} isLeading={selectedDream.isLeading} onClose={() => setSelectedDream(null)} onEdit={() => { setEditingDream(selectedDream); setSelectedDream(null); setShowForm(true); }} onToggleFocus={() => handleToggleFocus(selectedDream)} onSetLeading={() => handleSetLeading(selectedDream)} onArchive={() => handleArchive(selectedDream)} onAchieve={() => handleAchieve(selectedDream)} />
       )}
 
       <Modal isOpen={showFocusSelect} onClose={() => { setShowFocusSelect(false); setPendingFocusDream(null); }} title="Выберите мечту для замены">
