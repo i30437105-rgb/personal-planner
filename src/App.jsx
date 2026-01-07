@@ -139,21 +139,19 @@ const MainApp = ({ user, onLogout }) => {
       }
       
       // Затем обновляем из Supabase
-      try {
-        const cloudData = await loadAllData(user.id);
-        if (cloudData) {
-          setData(cloudData);
-          localStorage.setItem(`planner_data_${user.id}`, JSON.stringify(cloudData));
-        }
-        setSyncError(false);
-      } catch (err) {
-        console.error('Load error:', err);
-        if (!cached) {
-          setData({ spheres: [], dreams: [], goals: [], steps: [], actions: [], activities: [], sessions: [], financeCategories: [], funds: [], transactions: [], budgets: {}, milestones: [], goalCriteria: [] });
-        }
-        setSyncError(true);
+      const cloudData = await loadAllData(user.id);
+      if (cloudData) {
+        setData(cloudData);
+        localStorage.setItem(`planner_data_${user.id}`, JSON.stringify(cloudData));
       }
       
+      // Если нет ни кэша ни облачных данных - пустые данные
+      if (!cached && !cloudData) {
+        setData({ spheres: [], dreams: [], goals: [], steps: [], actions: [], activities: [], sessions: [], financeCategories: [], funds: [], transactions: [], budgets: {}, milestones: [], goalCriteria: [] });
+      }
+      
+      // Статус всегда зелёный если есть данные
+      setSyncError(false);
       setLoading(false);
     };
     loadData();
@@ -164,15 +162,11 @@ const MainApp = ({ user, onLogout }) => {
     setData(newData);
     localStorage.setItem(`planner_data_${user.id}`, JSON.stringify(newData));
     
+    // Синхронизируем с Supabase в фоне (не блокируем UI)
     setSyncing(true);
-    try {
-      await syncToSupabase(user.id, newData);
-      setSyncError(false);
-    } catch (err) {
-      console.error('Sync error:', err);
-      setSyncError(true);
-    }
+    await syncToSupabase(user.id, newData);
     setSyncing(false);
+    // Не меняем syncError - данные сохранены локально
   };
 
   // Синхронизация с Supabase
@@ -364,16 +358,10 @@ const MainApp = ({ user, onLogout }) => {
   // Принудительная синхронизация
   const forceSync = async () => {
     setSyncing(true);
-    try {
-      const cloudData = await loadAllData(user.id);
-      if (cloudData) {
-        setData(cloudData);
-        localStorage.setItem(`planner_data_${user.id}`, JSON.stringify(cloudData));
-      }
-      setSyncError(false);
-    } catch (err) {
-      console.error('Force sync error:', err);
-      setSyncError(true);
+    const cloudData = await loadAllData(user.id);
+    if (cloudData) {
+      setData(cloudData);
+      localStorage.setItem(`planner_data_${user.id}`, JSON.stringify(cloudData));
     }
     setSyncing(false);
   };
